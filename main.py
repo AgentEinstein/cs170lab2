@@ -13,69 +13,99 @@ def load_dataset(filename):
     return features, labels
 
 def greedyforwardsearch(numfeatures):
-    features = list(range(1, numfeatures + 1)) 
+    features = list(range(1, numfeatures + 1))
     bestaccuracy = {}
-    max_features = None
+    allvisited = {}
+    required_features = []
 
     for r in range(1, numfeatures + 1):
         accuracyoffeatures = {}
         maxsofar = -math.inf
-        for combination in itertools.combinations(features, r):
-            accuracy = random.uniform(0, 100)  
-            accuracyoffeatures[combination] = accuracy   
+
+        # Generate combinations of the remaining features
+        remaining_features = [f for f in features if f not in required_features]
+        for combination in itertools.combinations(remaining_features, r - len(required_features)):
+            full_combination = tuple(sorted(combination + tuple(required_features)))
+            
+            if full_combination in allvisited:
+                continue
+            
+            accuracy = random.uniform(0, 100)
+            accuracyoffeatures[full_combination] = accuracy
+            allvisited[full_combination] = accuracy
+            
             if accuracy > maxsofar:
                 maxsofar = accuracy
-                bestaccuracy[combination] = maxsofar
-            if r == 1:
-                print(f'Using feature(s) {combination} accuracy is {accuracy:.2f}%')
-        if r >= 2 and max_features is not None:
-            updated = find_combinations_with_features(accuracyoffeatures, *max_features)    
+                bestaccuracy[full_combination] = maxsofar
+            
+            if r < 2:
+                print(f'Using feature(s) {full_combination} accuracy is {accuracy:.2f}%')
+        
+        if r >= 2:
+            updated = find_combinations_with_features(accuracyoffeatures, *required_features)
             for i, acc in updated.items():
-                print(f'Using feature(s) {i} accuracy is {acc:.2f}%')     
+                print(f'Using feature(s) {i} accuracy is {acc:.2f}%')
+        
         print("\n")
-        if r == 1:
+        
+        if r < 2:
             max_features = max(accuracyoffeatures, key=accuracyoffeatures.get)
             max_acc = max(accuracyoffeatures.values())
-            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n")   
+            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n")
+            required_features = list(max_features)  # Update required features with the best set found
+        
         elif r >= 2:
             max_features = max(updated, key=updated.get)
             max_acc = max(updated.values())
-            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n") 
-            if r == numfeatures and max_acc < max(bestaccuracy.values()):
-                print("(Warning, Accuracy has decreased!)")
+            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n")
+            required_features = list(max_features)  # Update required features with the best set found
+            if r == numfeatures:
+                if max_acc < max(bestaccuracy.values()):
+                    print("(Warning, Accuracy has decreased!)")
+    
     print(f"Finished search!! The best feature subset is {max(bestaccuracy, key=bestaccuracy.get)}, which has an accuracy of {max(bestaccuracy.values()):.2f}%")
 
 def backwardsearch(numfeatures):
-    features = list(range(1, numfeatures + 1))
+    features = list(range(1, numfeatures + 1))  # Create a list of features, e.g., [1, 2, 3, 4] for 4 features
     bestaccuracy = {}
-    max_features = None
+    allvisited = []
+    subset_features = []
 
     for r in range(numfeatures, 0, -1):
         accuracyoffeatures = {}
         maxsofar = -math.inf
-        for combination in itertools.combinations(features, r):
+        required_features = [f for f in features if f not in subset_features]
+        for combination in itertools.combinations(required_features, r):
             accuracy = random.uniform(0, 100)
-            accuracyoffeatures[combination] = accuracy 
+            accuracyoffeatures[combination] = accuracy
+            allvisited.append(combination)
             if accuracy > maxsofar:
                 maxsofar = accuracy
                 bestaccuracy[combination] = maxsofar
             if r == numfeatures:
                 print(f'Using feature(s) {combination} accuracy is {accuracy:.2f}%')
-        if r < numfeatures and max_features is not None:
-            updated = find_combinations_with_features_set(accuracyoffeatures, *max_features) 
+        
+        if r < numfeatures:
+            updated = find_combinations_with_features_set(accuracyoffeatures, *required_features)
             for i, acc in updated.items():
-                print(f'Using feature(s) {i} accuracy is {acc:.2f}%')     
+                print(f'Using feature(s) {i} accuracy is {acc:.2f}%')
+
         print("\n")
         if r == numfeatures:
             max_features = max(accuracyoffeatures, key=accuracyoffeatures.get)
             max_acc = max(accuracyoffeatures.values())
-            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n")   
-        elif r < numfeatures:
+            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n")
+        elif r < numfeatures and updated:
             max_features = max(updated, key=updated.get)
             max_acc = max(updated.values())
-            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n") 
+            print(f"Feature set {max_features} was best, accuracy is {max_acc:.2f}% \n")
             if r == 1 and max_acc < max(bestaccuracy.values()):
                 print("(Warning, Accuracy has decreased!)")
+            
+        if r >= 1:
+            subset_features = [f for f in features if f not in max_features]
+
+
     print(f"Finished search!! The best feature subset is {max(bestaccuracy, key=bestaccuracy.get)}, which has an accuracy of {max(bestaccuracy.values()):.2f}%")
 
 def special_algorithm(numfeatures):
@@ -139,9 +169,11 @@ def special_algorithm(numfeatures):
         print(line)
 
 def find_combinations_with_features(combinations, *features):
+    # Filter combinations that contain all the specified features
     return {combination: accuracy for combination, accuracy in combinations.items() if all(feature in combination for feature in features)}
 
 def find_combinations_with_features_set(combinations, *features):
+    # Filter combinations that are subsets of the specified features
     return {combination: accuracy for combination, accuracy in combinations.items() if set(combination).issubset(features)}
 
 print("Welcome to Group 45 Feature Selection Algorithm.\n")
