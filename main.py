@@ -69,7 +69,7 @@ def greedyforwardsearch(data, labels):
 def backwardsearch(data, labels):
     num_features = data.shape[1]
     features = set(range(num_features))
-    best_accuracy = -math.inf
+    best_accuracy = 0
     best_features = features.copy()
 
     classifier = Classifier()
@@ -106,7 +106,7 @@ def special_algorithm(data, labels):
     num_features = data.shape[1]
     features = set(range(num_features))
     selected_features = set()
-    best_accuracy = 0.0
+    best_accuracy = 0
     best_feature_subset = set()
 
     classifier = Classifier()
